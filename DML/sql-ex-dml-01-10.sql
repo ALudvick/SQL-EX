@@ -1,101 +1,102 @@
 -- SQL-EX 1
--- Найдите номер модели, скорость и размер жесткого диска для всех ПК стоимостью менее 500 дол. 
--- Вывести: model, speed и hd
+-- Добавить в таблицу PC следующую модель:
+-- code: 20, model: 2111, speed: 950, ram: 512, hd: 60, cd: 52x, price: 1100
 
-SELECT model, speed, hd
-FROM pc
-WHERE price < 500
+INSERT INTO pc(code, model, speed, ram, hd, cd, price)
+VALUES (20, 2111, 950, 512, 60, '52x', 1100)
 ;
 
 -- SQL-EX 2
--- Найдите производителей принтеров. Вывести: maker
+-- Добавить в таблицу Product следующие продукты производителя Z:
+-- принтер модели 4003, ПК модели 4001 и блокнот модели 4002
 
-SELECT DISTINCT pr.maker
-FROM product pr
-WHERE pr.type = 'Printer'
+INSERT INTO product(maker, model, type)
+VALUES ('Z', 4003, 'Printer'), 
+       ('Z', 4001, 'PC'),
+       ('Z', 4002, 'Laptop')
 ;
 
 -- SQL-EX 3
--- Найдите номер модели, объем памяти и размеры экранов ПК-блокнотов, цена которых превышает 1000 дол.
+-- Добавить в таблицу PC модель 4444 с кодом 22, имеющую скорость процессора 1200 и цену 1350.
+-- Отсутствующие характеристики должны быть восполнены значениями по умолчанию, принятыми для соответствующих столбцов.
 
-SELECT lp.model, lp.ram, lp.screen
-FROM laptop lp
-WHERE lp.price > 1000
+INSERT INTO pc(code, model, speed, price)
+VALUES (22, 4444, 1200, 1350)
 ;
 
 -- SQL-EX 4
--- Найдите все записи таблицы Printer для цветных принтеров.
+-- Для каждой группы блокнотов с одинаковым номером модели добавить запись в таблицу PC со следующими характеристиками:
+-- код: минимальный код блокнота в группе +20;
+-- модель: номер модели блокнота +1000;
+-- скорость: максимальная скорость блокнота в группе;
+-- ram: максимальный объем ram блокнота в группе *2;
+-- hd: максимальный объем hd блокнота в группе *2;
+-- cd: значение по умолчанию;
+-- цена: максимальная цена блокнота в группе, уменьшенная в 1,5 раза.
+-- Замечание. Считать номер модели числом.
 
-SELECT *
-FROM printer pp
-WHERE pp.color = 'y'
+INSERT INTO pc(code, model, speed, ram, hd, price)
+SELECT min(code)+20 as code, 
+       model+1000 as model,
+       max(speed) as speed,
+       max(ram)*2 as ram,
+       max(hd)*2 as hd,
+       max(price)/1.5 as price
+FROM laptop
+GROUP BY model
 ;
 
 -- SQL-EX 5
--- Найдите номер модели, скорость и размер жесткого диска ПК, имеющих 12x или 24x CD и цену менее 600 дол.
+-- Удалить из таблицы PC компьютеры, имеющие минимальный объем диска или памяти.
 
-SELECT pc.model, pc.speed, pc.hd
-FROM PC pc
-WHERE (pc.cd = '12x' OR pc.cd ='24x')
-AND pc.price < 600
+DELETE FROM pc
+WHERE 1=1
+   AND hd = (SELECT min(hd) FROM pc)
+   OR ram = (SELECT min(ram) FROM pc)
 ;
 
 -- SQL-EX 6
--- Для каждого производителя, выпускающего ПК-блокноты c объёмом жесткого диска не менее 10 Гбайт, 
--- найти скорости таких ПК-блокнотов. Вывод: производитель, скорость.
+-- Удалить все блокноты, выпускаемые производителями, которые не выпускают принтеры.
 
-SELECT DISTINCT pr.maker, lp.speed
-FROM product pr
-JOIN laptop lp ON lp.model = pr.model
-WHERE 1 = 1
-AND lp.hd >= 10
+DELETE FROM laptop
+WHERE model IN (SELECT l.model
+                FROM laptop l, product p
+                WHERE 1=1
+                AND l.model = p.model
+                AND p.maker NOT IN (SELECT pr.maker FROM product pr WHERE pr.type = 'Printer')
+               )
 ;
 
 -- SQL-EX 7
--- Найдите номера моделей и цены всех имеющихся в продаже продуктов (любого типа) производителя B (латинская буква).
+-- Производство принтеров производитель A передал производителю Z. Выполнить соответствующее изменение.
 
-SELECT pc.model, pc.price
-FROM pc pc
-JOIN Product pr ON pr.model = pc.model
-WHERE pr.maker LIKE 'B'
-
-UNION ALL 
-
-SELECT lp.model, lp.price
-FROM laptop lp
-JOIN product pr ON pr.model = lp.model
-WHERE pr.maker LIKE 'B'
-
-UNION ALL 
-
-SELECT pp.model, pp.price
-FROM printer pp
-JOIN product pr ON pr.model = pp.model
-WHERE pr.maker LIKE 'B'
+UPDATE product
+SET maker = 'Z' 
+WHERE 1=1
+AND maker = 'A'
+AND type = 'Printer'
 ;
 
 -- SQL-EX 8
--- Найдите производителя, выпускающего ПК, но не ПК-блокноты.
+-- Удалите из таблицы Ships все корабли, потопленные в сражениях.
 
-SELECT pr.maker
-FROM product pr
-WHERE pr.type = 'PC'
-EXCEPT (SELECT pr1.maker FROM product pr1 WHERE pr1.type = 'Laptop')
+DELETE FROM ships
+WHERE name IN (SELECT s.name
+               FROM ships s, outcomes o
+               WHERE 1=1
+               AND s.name = o.ship
+               AND o.result = 'sunk'
+              )
 ;
 
 -- SQL-EX 9
--- Найдите производителей ПК с процессором не менее 450 Мгц. Вывести: Maker
+-- Измените данные в таблице Classes так, чтобы калибры орудий измерялись в
+-- сантиметрах (1 дюйм=2,5см), а водоизмещение в метрических тоннах (1 метрическая тонна = 1,1 тонны). 
+-- Водоизмещение вычислить с точностью до целых.
 
-SELECT DISTINCT pr.maker
-FROM product pr
-JOIN pc pc ON pc.model = pr.model
-WHERE pc.speed >= 450
+UPDATE classes
+SET bore = round(bore*2.5, 2), displacement = round(displacement/1.1, 0)
 ;
 
--- SQL-EX 10
--- Найдите модели принтеров, имеющих самую высокую цену. Вывести: model, price
 
-SELECT pp.model, pp.price
-FROM printer pp
-WHERE pp.price = (SELECT MAX(pp1.price) FROM pp1.printer)
-;
+
