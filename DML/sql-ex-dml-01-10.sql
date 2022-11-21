@@ -98,5 +98,26 @@ UPDATE classes
 SET bore = round(bore*2.5, 2), displacement = round(displacement/1.1, 0)
 ;
 
+-- SQL-EX 10
+-- Добавить в таблицу PC те модели ПК из Product, которые отсутствуют в таблице PC.
+-- При этом модели должны иметь следующие характеристики:
+-- 1. Код равен номеру модели плюс максимальный код, который был до вставки.
+-- 2. Скорость, объем памяти и диска, а также скорость CD должны иметь максимальные характеристики среди 
+-- всех имеющихся в таблице PC.
+-- 3. Цена должна быть средней среди всех ПК, имевшихся в таблице PC до вставки.
 
+INSERT INTO pc
+SELECT pr.model + (SELECT MAX(code) FROM pc) as code, 
+pr.model,
+(SELECT MAX(speed) FROM pc) as speed,
+(SELECT MAX(ram) FROM pc) as ram,
+(SELECT MAX(hd) FROM pc) as hd,
+(SELECT CAST(MAX(CAST(REPLACE(cd, 'x', '') AS INT)) AS VARCHAR) + 'x' FROM pc) as cd,
+(SELECT AVG(price) FROM pc) as price 
+FROM product pr
+LEFT JOIN pc pc ON pc.model = pr.model
+WHERE 1=1
+AND pr.type = 'PC'
+AND pc.model is null
+;
 
